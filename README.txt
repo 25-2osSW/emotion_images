@@ -1,7 +1,7 @@
-#🎭 Emotion Images Extension (감정 분석 이미지 확장)
+# 🎭 Emotion Images Extension (감정 분석 이미지 확장)
 감정분석 모델 입니다.
 
-#📂 폴더 구조 (Directory Structure)
+# 📂 폴더 구조 (Directory Structure)
 설치 후 폴더 구조는 다음과 같아야 합니다.
 
 text-generation-webui/
