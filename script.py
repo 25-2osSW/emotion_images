@@ -12,20 +12,16 @@ def output_modifier(string, state):
     if not string:
         return string
 
-    # 1. 로컬 모델 로딩 (
+    # 1. 로컬 모델 로딩
     if emotion_classifier is None:
         try:
-    
             base_path = os.path.dirname(__file__)
             local_model_path = os.path.join(base_path, "model")
             
-            # 모델 폴더 확인
             if not os.path.exists(local_model_path):
                 print(f"[Error] 'model' 폴더가 없습니다. 경로: {local_model_path}")
                 return string
 
-            # 로컬 경로에서 모델 로딩
- 
             emotion_classifier = pipeline(
                 "text-classification", 
                 model=local_model_path, 
@@ -38,13 +34,38 @@ def output_modifier(string, state):
             return string
 
     try:
-
-        # 2. 텍스트 분석
-        # 긴 문장은 자르고, 최대 길이는 512토큰
-        results = emotion_classifier(string, truncation=True, max_length=512)
-        raw_label = results[0]['label'] 
+        # 2. 텍스트 분석 
+        # top_k=None: 모든 점수 가져오기
+        raw_results = emotion_classifier(string, truncation=True, max_length=512, top_k=None)
         
-     
+        results = raw_results
+        if isinstance(raw_results, list) and len(raw_results) > 0 and isinstance(raw_results[0], list):
+            results = raw_results[0]
+
+        # 점수 변수 초기화
+        score_neg = 0.0
+        score_neu = 0.0
+        score_pos = 0.0
+        
+        # 라벨 이름이 달라도(LABEL_0 vs negative) 알아서 찾아넣기
+        for item in results:
+            label = item['label'].lower() # 소문자로 변환해서 비교
+            score = item['score']
+            
+            # 부정 (LABEL_0 or negative)
+            if 'label_0' in label or 'negative' in label:
+                score_neg = score
+            # 중립 (LABEL_1 or neutral)
+            elif 'label_1' in label or 'neutral' in label:
+                score_neu = score
+            # 긍정 (LABEL_2 or positive)
+            elif 'label_2' in label or 'positive' in label:
+                score_pos = score
+
+        # 가장 높은 점수의 라벨 찾기
+        sorted_results = sorted(results, key=lambda x: x['score'], reverse=True)
+        top_label_raw = sorted_results[0]['label'].lower()
+        
         # 3. 키워드 설정 
         keywords_fear = ['무서', '공포', '겁', '소름', '불안', '두려', '오싹', '섬뜩', '비명', '도망', '살려']
         keywords_disgust = ['구역질', '토', '우웩', '역겨', '극혐', '더러', '비위', '냄새', '썩', '징그', '오물']
@@ -57,10 +78,9 @@ def output_modifier(string, state):
         final_emotion = "neutral" 
         match_reason = "기본값"
 
-
         # 4. 감정 매칭 로직
-        # 부정(Negative) -> LABEL_0
-        if raw_label == 'LABEL_0' or raw_label == 'negative':
+        # 부정 처리
+        if 'label_0' in top_label_raw or 'negative' in top_label_raw:
             if any(word in string for word in keywords_disgust):
                 final_emotion = "disgust"
                 match_reason = "부정 + 키워드(혐오)"
@@ -77,8 +97,8 @@ def output_modifier(string, state):
                 final_emotion = "anger"
                 match_reason = "부정(키워드 없음) -> 분노"
 
-        # 긍정(Positive) -> LABEL_2
-        elif raw_label == 'LABEL_2' or raw_label == 'positive':
+        # 긍정 처리
+        elif 'label_2' in top_label_raw or 'positive' in top_label_raw:
             if any(word in string for word in keywords_surprise):
                 final_emotion = "surprise"
                 match_reason = "긍정 + 키워드(놀람)"
@@ -89,7 +109,7 @@ def output_modifier(string, state):
                 final_emotion = "joy"
                 match_reason = "긍정(키워드 없음) -> 기쁨"
 
-        # 중립(Neutral) -> LABEL_1
+        # 중립 처리
         else: 
             if any(word in string for word in keywords_disgust): final_emotion = "disgust"
             elif any(word in string for word in keywords_joy): final_emotion = "joy"
@@ -100,31 +120,33 @@ def output_modifier(string, state):
                 final_emotion = "neutral"
                 match_reason = "중립 판단"
 
-
-        # 5. 이미지 출력
-
-        print(f"입력: {string[:30]}...")
-        print(f"분석: {raw_label} -> 매칭: {final_emotion} (사유: {match_reason})")
+        # 5. CMD 창 출력
+        print("\n" + "="*40)
+        print(f"[입력 텍스트]: {string[:30]}...")
+        print("-" * 40)
+        print(f"[모델 분석 점수]")
+        print(f" - 부정 (Negative): {score_neg*100:.2f}%")
+        print(f" - 중립 (Neutral) : {score_neu*100:.2f}%")
+        print(f" - 긍정 (Positive): {score_pos*100:.2f}%")
+        print("-" * 40)
+        print(f"[최종 판정]: {final_emotion}")
+        print(f"[판정 사유]: {match_reason}")
+        print("="*40 + "\n")
         
+        # 이미지 출력
         base_path = os.path.dirname(__file__)
         image_folder = os.path.join(base_path, "images", final_emotion)
         
         image_url = None
-        
-        # 해당 감정 폴더가 실제로 있는지 확인
         if os.path.exists(image_folder):
             valid_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.webp')
             files = [f for f in os.listdir(image_folder) if f.lower().endswith(valid_extensions)]
-            
             if files:
                 selected = random.choice(files)
-                
                 image_url = f"file/extensions/emotion_images/images/{final_emotion}/{selected}"
         
-        # 이미지가 있으면 HTML 태그를 추가해서 리턴
         if image_url:
             img_html = f'<div style="margin-top: 10px;"><img src="{image_url}" alt="{final_emotion}" style="width: 300px; border-radius: 10px;"></div>'
-            # 디버그용 텍스트 
             debug_info = f"<div style='font-size: 12px; color: gray; margin-top: 5px;'>감정: <b>{final_emotion}</b> ({match_reason})</div>"
             return string + "\n" + img_html + debug_info
         
@@ -132,6 +154,7 @@ def output_modifier(string, state):
 
     except Exception as e:
         print(f"[Runtime Error] {e}")
+        print(f"DEBUG: {raw_results}") 
         return string
 
 def ui():
