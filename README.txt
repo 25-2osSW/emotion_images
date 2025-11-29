@@ -14,3 +14,5 @@ text-generation-webui/
         └── model/        <-- 모델 파일 넣는 곳
 #모델 다운로드
 https://huggingface.co/cardiffnlp/twitter-xlm-roberta-base-sentiment/tree/main 여기 들어가셔서 config.json , pytorch_model.bin , sentencepiece.bpe.model , special_tokens_map.json 파일 다운받아주시고 model 파일안에 넣어주세요
+
+!!!!!꼭 실행하기전에 istall_protobuf, install_transformer 실행해주세요 !!!!!
