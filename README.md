@@ -26,9 +26,8 @@ extensions안에 클론해서 가져가시면 됩니다.
 **SillyTavern안에 public폴더로 가신다음 emotion_images 폴더를 하나 만들어주세요 그안에 위에서 다운받은 images폴더안에 7개의 감정 사진폴더를 넣어주세요**
 ### 4. 경로 설정 필수!
 `script.py` 파일을 메모장이나 VSCode로 열고, `IMAGE_ROOT_PATH` 변수를 **본인의 SillyTavern 안에 public/emotion_images **로 맞게 수정해야 합니다.
-예: C:\Users\user\Desktop\OpenSW\SillyTavern\public\emotion_images
 
 
 ```python
 # [예시] 본인의 윈도우 사용자 이름(User)에 맞게 수정하세요.
-IMAGE_ROOT_PATH = r"C:\Users\내이름\Desktop\SillyTavern\public\emotion_images"
+IMAGE_ROOT_PATH = r"C:\Users\user\Desktop\OpenSW\SillyTavern\public\emotion_images"
