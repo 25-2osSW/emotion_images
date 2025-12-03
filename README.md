@@ -31,3 +31,6 @@ extensions안에 클론해서 가져가시면 됩니다.
 ```python
 # [예시] 본인의 윈도우 사용자 이름(User)에 맞게 수정하세요.
 IMAGE_ROOT_PATH = r"C:\Users\user\Desktop\OpenSW\SillyTavern\public\emotion_images"
+```
+## 필수 !
+SillyTavern의 Extension에서 Regex 기능 반드시 꺼주세요!!!
